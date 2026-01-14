@@ -13,6 +13,9 @@ import {
   downloadBulkTemplate,
 } from "../../api/api";
 
+// Role label helpers
+import { getRoleLabel, normalizeRoleKey } from "../../utils/roleUtils";
+
 // === Updated to match backend enums ===
 const LOCATION_OPTIONS = [
   { value: "BENGALURU", label: "Bengaluru" },
@@ -493,22 +496,34 @@ const UserManager = ({
     }
   };
 
+  // Only show users with roles: IT_ADMIN, ROLE_CALIBRATION_MANAGER, ROLE_ADMIN (and equivalent variants)
+  const allowedRolesNormalized = new Set(["IT_ADMIN", "ADMIN", "CALIBRATION_MANAGER"]);
+
   const filteredUsers = React.useMemo(() => {
     const q = (searchText || "").trim().toLowerCase();
-    if (!q) return usersList;
     const qDigits = searchText.replace(/\D/g, "");
-    return usersList.filter((u) => {
-      const name = `${u.firstName || ""} ${u.lastName || ""}`.trim().toLowerCase();
-      const username = (u.username || "").toLowerCase();
-      const email = (u.email || "").toLowerCase();
-      const phoneDigits = String(u.phone || "").replace(/\D/g, "");
-      return (
-        name.includes(q) ||
-        username.includes(q) ||
-        email.includes(q) ||
-        (qDigits && phoneDigits.includes(qDigits))
-      );
-    });
+
+    return usersList
+      .filter((u) => {
+        // Normalize role for comparison (handles ROLE_ prefix and case)
+        const roleName = u.role?.name || (typeof u.role === 'string' ? u.role : "");
+        const normalized = normalizeRoleKey(roleName);
+        return allowedRolesNormalized.has(normalized);
+      })
+      .filter((u) => {
+        // apply search filter
+        if (!q) return true;
+        const name = `${u.firstName || ""} ${u.lastName || ""}`.trim().toLowerCase();
+        const username = (u.username || "").toLowerCase();
+        const email = (u.email || "").toLowerCase();
+        const phoneDigits = String(u.phone || "").replace(/\D/g, "");
+        return (
+          name.includes(q) ||
+          username.includes(q) ||
+          email.includes(q) ||
+          (qDigits && phoneDigits.includes(qDigits))
+        );
+      });
   }, [usersList, searchText]);
 
   // Show tooltip on click of disabled mimic
@@ -791,7 +806,7 @@ const UserManager = ({
                       {user.departments?.map((d) => d.name).join(", ") || "-"}
                     </td>
                     <td className={`px-5 py-4 whitespace-nowrap text-sm ${user.isActive ? "text-gray-900" : "text-gray-500"}`}>
-                      {user.role?.name || "-"}
+                      {getRoleLabel(user.role?.name || (typeof user.role === 'string' ? user.role : '')) || "-"}
                     </td>
                     <td className={`px-5 py-4 text-sm ${user.isActive ? "text-gray-900" : "text-gray-500"}`}>
                       {user.functions?.map((f) => f.name).join(", ") || "-"}
@@ -1014,7 +1029,7 @@ const UserManager = ({
                     <option value="">Select Role</option>
                     {roleOptions.map((role) => (
                       <option key={role.id} value={role.id}>
-                        {role.name}
+                        {getRoleLabel(role.name || (typeof role === 'string' ? role : ''))}
                       </option>
                     ))}
                   </select>
