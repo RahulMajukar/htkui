@@ -71,6 +71,42 @@ export default function GageTypeInventory({ isOpen, onClose }) {
     return subType ? subType.name : "-";
   };
 
+  // Helper function to get or create sub-type
+  const getOrCreateSubType = async (subTypeName) => {
+    if (!subTypeName || subTypeName.trim() === "") {
+      return null;
+    }
+
+    const trimmedName = subTypeName.trim();
+    
+    // Check if sub-type already exists in local state
+    const existingSubType = gageSubTypes.find(
+      st => st.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    
+    if (existingSubType) {
+      return existingSubType.id;
+    }
+
+    try {
+      // Create new sub-type
+      console.log(`Creating new sub-type: ${trimmedName}`);
+      const createRes = await api.post("/gage-sub-types/add", {
+        name: trimmedName,
+      });
+      
+      // Add to local state
+      const newSubType = createRes.data;
+      setGageSubTypes(prev => [...prev, newSubType]);
+      
+      return newSubType.id;
+    } catch (error) {
+      console.error(`Failed to create sub-type: ${trimmedName}`, error);
+      // If creation fails, return null (no sub-type)
+      return null;
+    }
+  };
+
   const exportToCSV = () => {
     const headers = ["Name", "Description", "Gage Sub-Type"];
     const csvData = gageTypes.map(item => [
@@ -100,11 +136,12 @@ export default function GageTypeInventory({ isOpen, onClose }) {
   const exportTemplate = () => {
     const headers = ["Name", "Description", "Gage Sub-Type"];
     const exampleRow = ["Example Gage", "This is an example description", "Sub-Type A"];
+    const noteRow = "New sub-types will be created automatically if they don't exist";
     
     const csvContent = [
       headers.join(","),
       exampleRow.map(cell => `"${cell}"`).join(","),
-      '"Note: Name field is required, Gage Sub-Type should match existing sub-types"'
+      `"${noteRow}"`
     ].join("\n");
     
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -128,10 +165,35 @@ export default function GageTypeInventory({ isOpen, onClose }) {
     reader.onload = (e) => {
       const content = e.target.result;
       const lines = content.split('\n').filter(line => line.trim());
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      if (lines.length === 0) return;
+      
+      // Parse CSV with proper quote handling
+      const parseCSVLine = (line) => {
+        const result = [];
+        let inQuotes = false;
+        let currentField = '';
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"' && (i === 0 || line[i-1] !== '\\')) {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(currentField.trim().replace(/^"|"$/g, ''));
+            currentField = '';
+          } else {
+            currentField += char;
+          }
+        }
+        
+        result.push(currentField.trim().replace(/^"|"$/g, ''));
+        return result;
+      };
+      
+      const headers = parseCSVLine(lines[0]);
       
       const previewData = lines.slice(1, 6).map(line => {
-        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const values = parseCSVLine(line);
         const row = {};
         headers.forEach((header, index) => {
           row[header] = values[index] || "";
@@ -157,68 +219,126 @@ export default function GageTypeInventory({ isOpen, onClose }) {
       try {
         const content = e.target.result;
         const lines = content.split('\n').filter(line => line.trim());
-        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
         
-        const importData = lines.slice(1)
-          .map(line => {
-            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-            const row = {};
-            headers.forEach((header, index) => {
-              row[header] = values[index] || "";
-            });
-            return row;
-          })
-          .filter(row => row.Name && row.Name.trim())
-          .map(row => {
-            let subTypeId = null;
-            if (row["Gage Sub-Type"]) {
-              const subType = gageSubTypes.find(
-                st => st.name.toLowerCase() === row["Gage Sub-Type"].toLowerCase()
-              );
-              subTypeId = subType ? subType.id : null;
-            }
-
-            return {
-              name: row.Name.trim(),
-              description: row.Description || "",
-              gageSubTypeId: subTypeId
-            };
-          });
-
-        if (importData.length === 0) {
-          alert("❌ No valid data found in CSV file");
+        if (lines.length === 0) {
+          alert("❌ CSV file is empty");
           setIsImporting(false);
           return;
         }
 
-        // Use existing single API calls instead of bulk API
+        // Parse CSV with proper quote handling
+        const parseCSVLine = (line) => {
+          const result = [];
+          let inQuotes = false;
+          let currentField = '';
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"' && (i === 0 || line[i-1] !== '\\')) {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(currentField.trim().replace(/^"|"$/g, ''));
+              currentField = '';
+            } else {
+              currentField += char;
+            }
+          }
+          
+          result.push(currentField.trim().replace(/^"|"$/g, ''));
+          return result;
+        };
+        
+        const headers = parseCSVLine(lines[0]);
+        
+        // Find column indices
+        const nameIndex = headers.findIndex(h => 
+          h.toLowerCase().includes('name')
+        );
+        const descIndex = headers.findIndex(h => 
+          h.toLowerCase().includes('desc')
+        );
+        const subTypeIndex = headers.findIndex(h => 
+          h.toLowerCase().includes('sub') || h.toLowerCase().includes('type')
+        );
+
+        if (nameIndex === -1) {
+          alert("❌ CSV must have a 'Name' column");
+          setIsImporting(false);
+          return;
+        }
+
         let successCount = 0;
         let errorCount = 0;
+        const createdSubTypes = [];
         
-        for (const item of importData) {
+        // Process each row
+        for (let i = 1; i < lines.length; i++) {
           try {
+            const values = parseCSVLine(lines[i]);
+            const name = values[nameIndex]?.trim();
+            
+            if (!name) {
+              console.warn(`Row ${i}: Skipping - No name provided`);
+              continue;
+            }
+
+            const description = descIndex >= 0 ? values[descIndex]?.trim() || "" : "";
+            const subTypeName = subTypeIndex >= 0 ? values[subTypeIndex]?.trim() : "";
+            
+            let subTypeId = null;
+            if (subTypeName) {
+              subTypeId = await getOrCreateSubType(subTypeName);
+              if (subTypeId && !createdSubTypes.includes(subTypeName)) {
+                createdSubTypes.push(subTypeName);
+              }
+            }
+
+            const item = {
+              name,
+              description,
+              gageSubTypeId: subTypeId
+            };
+
             // Check if item already exists
             const existingItems = gageTypes.filter(gt => 
-              gt.name.toLowerCase() === item.name.toLowerCase()
+              gt.name.toLowerCase() === name.toLowerCase()
             );
             
             if (existingItems.length > 0) {
               // Update existing
               await api.put(`/gage-types/${existingItems[0].id}`, item);
+              console.log(`Updated: ${name}`);
             } else {
               // Create new
               await api.post("/gage-types/add", item);
+              console.log(`Created: ${name}`);
             }
             successCount++;
+            
           } catch (err) {
-            console.error(`Failed to import: ${item.name}`, err);
+            console.error(`Row ${i}: Failed to import`, err);
             errorCount++;
           }
         }
         
-        alert(`✅ Import completed! Success: ${successCount}, Failed: ${errorCount}`);
-        
+        // Refresh data
         await fetchGageTypes();
+        await fetchGageSubTypes();
+        
+        // Show summary
+        let message = `✅ Import completed!\n\nSuccess: ${successCount}\nFailed: ${errorCount}`;
+        
+        if (createdSubTypes.length > 0) {
+          message += `\n\nNew sub-types created: ${createdSubTypes.join(", ")}`;
+        }
+        
+        if (errorCount > 0) {
+          message += "\n\nCheck console for error details.";
+        }
+        
+        alert(message);
+        
         setShowImportModal(false);
         setImportFile(null);
         setImportPreview([]);
@@ -407,7 +527,7 @@ export default function GageTypeInventory({ isOpen, onClose }) {
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
               <p className="text-xs text-gray-500 mt-2">
-                File should have columns: <strong>Name</strong> (required), <strong>Description</strong> (optional), <strong>Gage Sub-Type</strong> (should match existing sub-types)
+                File should have columns: <strong>Name</strong> (required), <strong>Description</strong> (optional), <strong>Gage Sub-Type</strong> (optional - new sub-types will be created automatically)
               </p>
             </div>
 
