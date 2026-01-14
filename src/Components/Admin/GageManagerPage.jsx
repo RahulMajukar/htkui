@@ -216,14 +216,14 @@ const GageManagerPage = () => {
       description: "Equipment Categories",
       color: "purple"
     },
-    {
-      key: "viewInhouseCalibrationMachine",
-      label: "Inhouse Calibration Machines",
-      icon: makeIcon(Settings),
-      count: inhouseCalibrationMachines.length,
-      description: "Calibration equipment",
-      color: "indigo"
-    },
+    // {
+    //   key: "viewInhouseCalibrationMachine",
+    //   label: "Inhouse Calibration Machines",
+    //   icon: makeIcon(Settings),
+    //   count: inhouseCalibrationMachines.length,
+    //   description: "Calibration equipment",
+    //   color: "indigo"
+    // },
     {
       key: "viewManufacturer",
       label: "Manufacturers",
@@ -253,7 +253,7 @@ const GageManagerPage = () => {
   const addItems = [
     { key: "gage", title: "Add Gage", description: "Register new equipment", icon: Ruler, color: "blue" },
     { key: "gageType", title: "Add Gage Type", description: "Create equipment category", icon: Grid, color: "purple" },
-    { key: "inhouseCalibrationMachine", title: "Add Inhouse Calibration Machine", description: "Register calibration machine", icon: Settings, color: "indigo" },
+    // { key: "inhouseCalibrationMachine", title: "Add Inhouse Calibration Machine", description: "Register calibration machine", icon: Settings, color: "indigo" },
     { key: "manufacturer", title: "Add Manufacturer", description: "Register new OEM partner", icon: Factory, color: "green" },
     { key: "serviceProvider", title: "Add Service Provider", description: "Register service partner", icon: Wrench, color: "orange" },
   ];
@@ -349,7 +349,8 @@ const GageManagerPage = () => {
         {/* ADD NEW ITEMS */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Items</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"> */}
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
             {addItems.map((item) => (
               <button
                 key={item.key}
@@ -418,7 +419,7 @@ const GageManagerPage = () => {
         {activeModal === "viewGage" && <GageInventory isOpen={true} onClose={closeModal} />}
         {activeModal === "viewGageType" && <GageTypeInventory isOpen={true} onClose={closeModal} />}
         {activeModal === "viewInhouseCalibrationMachine" && <InhouseCalibrationMachineInventory isOpen={true} onClose={closeModal} />}
-        {activeModal === "scanBarcode" && <GageScanner onClose={closeModal} onScanResult={() => {}} />}
+        {activeModal === "scanBarcode" && <GageScanner onClose={closeModal} onScanResult={() => { }} />}
       </div>
     </div>
   );

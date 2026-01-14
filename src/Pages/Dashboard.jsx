@@ -15,6 +15,7 @@ import CalibrationManagerDashboard from "../Pages/DepartmentDash/calibration/Cal
 // NEW: Plant HOD Dashboard
 import PlantHODDashboard from "../Pages/DepartmentDash/PlantHODDashboard";
 import PlantHeadDash from "./DepartmentDash/PlantHeadDash";
+import QCMngrDashboard from "./DepartmentDash/QCMngrDashboard";
 
 const Dashboard = () => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -73,11 +74,12 @@ const Dashboard = () => {
       case "IT_ADMIN":
         if (loadingAdminData) return <p className="text-blue-700">Loading IT admin data...</p>;
         return (
-          <ITAdminDashboard
-            users={adminData.users}
-            roles={adminData.roles}
-            departments={adminData.departments}
-          />
+          // <ITAdminDashboard
+          //   users={adminData.users}
+          //   roles={adminData.roles}
+          //   departments={adminData.departments}
+          // />
+          <QCMngrDashboard/>
         );
 
       case "CALIBRATION_MANAGER":

@@ -29,6 +29,7 @@
     "mediasoup-client": "^3.18.0",
     "moment": "^2.30.1",
     "moment-timezone": "^0.6.0",
+    "papaparse": "^5.5.3",
     "react": "^19.1.1",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^19.1.1",

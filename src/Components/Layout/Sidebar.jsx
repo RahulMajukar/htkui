@@ -223,20 +223,20 @@ export default function Sidebar({
                 </NavLink>
 
                 {/* IT Admin specific menu */}
-                 {/* ( */}
-                  <NavLink
-                    to="/dashboard/it-admin"
-                    onClick={closeAll}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${isActive
-                        ? "bg-[#004a80] text-white shadow-md"
-                        : "text-white hover:text-white hover:bg-[#004a80]"
-                      }`
-                    }
-                  >
-                    <User2Icon size={16} />
-                    User Management
-                  </NavLink>
+                {/* ( */}
+                <NavLink
+                  to="/dashboard/it-admin"
+                  onClick={closeAll}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${isActive
+                      ? "bg-[#004a80] text-white shadow-md"
+                      : "text-white hover:text-white hover:bg-[#004a80]"
+                    }`
+                  }
+                >
+                  <User2Icon size={16} />
+                  User Management
+                </NavLink>
                 {/* )} */}
               </>
             )}
@@ -244,17 +244,22 @@ export default function Sidebar({
 
             {(isAdmin || isItAdmin || isCalibrationManager) && (
               <div className="mt-3">
-                <button
-                  onClick={() => toggleSection("admin")}
-                  className="flex items-center justify-between w-full py-2 px-3 text-xs font-semibold text-white hover:text-white transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <Shield size={16} />
-                    {/* Gage Management */}
-                    Inverntory Management
-                  </span>
-                  {openSections.admin ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </button>
+
+                {
+                  !isItAdmin && (
+                    <button
+                      onClick={() => toggleSection("admin")}
+                      className="flex items-center justify-between w-full py-2 px-3 text-xs font-semibold text-white hover:text-white transition-colors"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Shield size={16} />
+                        Inverntory Management
+                      </span>
+                      {openSections.admin ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </button>
+                  )
+                }
+
 
 
 
@@ -284,6 +289,16 @@ export default function Sidebar({
 
                 {isItAdmin && (
                   <div className="mt-2 mb-2 space-y-2">
+                    <NavLink
+                      to="/dashboard"
+                      onClick={closeAll}
+                      className={({ isActive }) =>
+                        `flex items-center gap-2 py-2 px-6 rounded text-sm transition-all ${isActive ? "bg-[#004a80] text-white" : "text-white hover:text-white hover:bg-[#004a80]"
+                        }`
+                      }
+                    >
+                      <Shield size={16} />Dashboard
+                    </NavLink>
                     <NavLink
                       to="/admin/calibration"
                       onClick={closeAll}

@@ -13,7 +13,7 @@ import { ClipboardPlus, Camera, Upload, X, ZoomIn, ZoomOut, Crop, Sun, Image, Ro
 
 const FREQUENCIES = ["Daily", "Weekly", "Monthly", "Occasionally"];
 const CRITICALITIES = ["High", "Medium", "Low"];
-const LOCATIONS = ["Shop Floor", "Lab", "Warehouse"];
+const LOCATIONS = ["Shop Floor", "Lab", "Warehouse","HF","TH","NF","BF","LAB","TH LAB","Furnace","NF Furnace"];
 const CODE_TYPES = ["Barcode Only", "QR Only", "Both"];
 
 const FREQUENCY_MAP = {
@@ -924,6 +924,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
                   showAddButton={true}
                   onAddNew={() => setShowAddGageSubTypeModal(true)}
                 />
+                {/* Inhouse Calibration Machine dropdown temporarily commented out
                 <SearchableSelect
                   label="Inhouse Calibration Machine (Optional)"
                   name="inhouseCalibrationMachine"
@@ -933,7 +934,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
                   options={[{ label: "None", value: "" }, ...inhouseCalibrationMachines.map((m) => ({ label: m.machineName, value: m.id.toString() }))]}
                   showAddButton={true}
                   onAddNew={() => setShowAddInhouseMachineModal(true)}
-                />
+                /> */}
                 <SearchableSelect
                   label="OEM (Manufacturer)"
                   name="manufacturer"

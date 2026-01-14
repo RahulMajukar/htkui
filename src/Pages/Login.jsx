@@ -80,10 +80,11 @@ export default function Login() {
           navigate(redirect, { replace: true });
         } else {
           const cleanRole = localStorage.getItem("userRole") || "USER";
+          // IT_ADMIN should land on the main dashboard
           const dashboardPath = cleanRole === "IT_ADMIN"
-            ? "/dashboard/it-admin"
+            ? "/dashboard"
             : `/dashboard/${cleanRole.toLowerCase()}`;
-          navigate(dashboardPath);
+          navigate(dashboardPath, { replace: true });
         }
       }, 1000);
     }

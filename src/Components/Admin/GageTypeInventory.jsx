@@ -3,13 +3,18 @@ import Modal from "../Modal";
 import GageTypeForm from "./GageTypeForm";
 import api from "../../api/axios";
 import { MaterialReactTable } from "material-react-table";
-import { Edit } from "lucide-react";
+import { Edit, Download, Upload, Plus } from "lucide-react";
 
 export default function GageTypeInventory({ isOpen, onClose }) {
   const [showForm, setShowForm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [viewMode, setViewMode] = useState("card");
   const [gageTypes, setGageTypes] = useState([]);
+  const [gageSubTypes, setGageSubTypes] = useState([]);
+  const [importFile, setImportFile] = useState(null);
+  const [importPreview, setImportPreview] = useState([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   const fetchGageTypes = async () => {
     try {
@@ -20,8 +25,20 @@ export default function GageTypeInventory({ isOpen, onClose }) {
     }
   };
 
+  const fetchGageSubTypes = async () => {
+    try {
+      const res = await api.get("/gage-sub-types/all");
+      setGageSubTypes(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch gage sub types", err);
+    }
+  };
+
   useEffect(() => {
-    if (isOpen) fetchGageTypes();
+    if (isOpen) {
+      fetchGageTypes();
+      fetchGageSubTypes();
+    }
   }, [isOpen]);
 
   const handleSave = async (data) => {
@@ -48,22 +65,194 @@ export default function GageTypeInventory({ isOpen, onClose }) {
     setShowForm(true);
   };
 
+  const getSubTypeName = (subTypeId) => {
+    if (!subTypeId) return "-";
+    const subType = gageSubTypes.find(st => st.id === subTypeId);
+    return subType ? subType.name : "-";
+  };
+
+  const exportToCSV = () => {
+    const headers = ["Name", "Description", "Gage Sub-Type"];
+    const csvData = gageTypes.map(item => [
+      item.name || "",
+      item.description || "",
+      getSubTypeName(item.gageSubTypeId) || ""
+    ]);
+    
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `gage-types-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    alert("✅ Gage types exported successfully!");
+  };
+
+  const exportTemplate = () => {
+    const headers = ["Name", "Description", "Gage Sub-Type"];
+    const exampleRow = ["Example Gage", "This is an example description", "Sub-Type A"];
+    
+    const csvContent = [
+      headers.join(","),
+      exampleRow.map(cell => `"${cell}"`).join(","),
+      '"Note: Name field is required, Gage Sub-Type should match existing sub-types"'
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gage-types-template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    setImportFile(file);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target.result;
+      const lines = content.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      
+      const previewData = lines.slice(1, 6).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || "";
+        });
+        return row;
+      });
+      
+      setImportPreview(previewData);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      alert("❌ Please select a file to import");
+      return;
+    }
+
+    setIsImporting(true);
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target.result;
+        const lines = content.split('\n').filter(line => line.trim());
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        
+        const importData = lines.slice(1)
+          .map(line => {
+            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+            const row = {};
+            headers.forEach((header, index) => {
+              row[header] = values[index] || "";
+            });
+            return row;
+          })
+          .filter(row => row.Name && row.Name.trim())
+          .map(row => {
+            let subTypeId = null;
+            if (row["Gage Sub-Type"]) {
+              const subType = gageSubTypes.find(
+                st => st.name.toLowerCase() === row["Gage Sub-Type"].toLowerCase()
+              );
+              subTypeId = subType ? subType.id : null;
+            }
+
+            return {
+              name: row.Name.trim(),
+              description: row.Description || "",
+              gageSubTypeId: subTypeId
+            };
+          });
+
+        if (importData.length === 0) {
+          alert("❌ No valid data found in CSV file");
+          setIsImporting(false);
+          return;
+        }
+
+        // Use existing single API calls instead of bulk API
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const item of importData) {
+          try {
+            // Check if item already exists
+            const existingItems = gageTypes.filter(gt => 
+              gt.name.toLowerCase() === item.name.toLowerCase()
+            );
+            
+            if (existingItems.length > 0) {
+              // Update existing
+              await api.put(`/gage-types/${existingItems[0].id}`, item);
+            } else {
+              // Create new
+              await api.post("/gage-types/add", item);
+            }
+            successCount++;
+          } catch (err) {
+            console.error(`Failed to import: ${item.name}`, err);
+            errorCount++;
+          }
+        }
+        
+        alert(`✅ Import completed! Success: ${successCount}, Failed: ${errorCount}`);
+        
+        await fetchGageTypes();
+        setShowImportModal(false);
+        setImportFile(null);
+        setImportPreview([]);
+      } catch (err) {
+        console.error("Import error:", err);
+        alert("❌ Failed to import gage types");
+      } finally {
+        setIsImporting(false);
+      }
+    };
+    reader.readAsText(importFile);
+  };
+
   const CardView = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto p-2">
       {gageTypes.map((gt) => (
         <div
           key={gt.id}
-          className="p-4 border rounded-lg shadow bg-white flex justify-between items-center"
+          className="p-4 border rounded-lg shadow bg-white flex justify-between items-start"
         >
-          <div>
+          <div className="flex-1">
             <h3 className="font-semibold text-lg">{gt.name}</h3>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500 text-sm mt-1">
               {gt.description || "No description"}
             </p>
+            {gt.gageSubTypeId && (
+              <p className="text-blue-600 text-sm mt-2">
+                <span className="font-medium">Sub-Type:</span> {getSubTypeName(gt.gageSubTypeId)}
+              </p>
+            )}
           </div>
           <button
             onClick={() => handleEdit(gt)}
-            className="text-blue-600 hover:underline text-sm"
+            className="text-blue-600 hover:underline text-sm ml-4"
           >
             Edit
           </button>
@@ -79,6 +268,11 @@ export default function GageTypeInventory({ isOpen, onClose }) {
         accessorKey: "description",
         header: "Description",
         Cell: ({ cell }) => cell.getValue() || "-",
+      },
+      {
+        id: "gageSubType",
+        header: "Gage Sub-Type",
+        Cell: ({ row }) => getSubTypeName(row.original.gageSubTypeId),
       },
       {
         id: "actions",
@@ -132,15 +326,35 @@ export default function GageTypeInventory({ isOpen, onClose }) {
                 Table View
               </button>
             </div>
-            <button
-              className="px-4 py-2 bg-green-500 text-white rounded"
-              onClick={() => {
-                setEditData(null);
-                setShowForm(true);
-              }}
-            >
-              + Add
-            </button>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                className="px-4 py-2 bg-blue-500 text-white rounded flex items-center gap-2 hover:bg-blue-600"
+                onClick={exportToCSV}
+              >
+                <Download className="w-4 h-4" /> Export CSV
+              </button>
+              <button
+                className="px-4 py-2 bg-purple-500 text-white rounded flex items-center gap-2 hover:bg-purple-600"
+                onClick={exportTemplate}
+              >
+                <Download className="w-4 h-4" /> Export Template
+              </button>
+              <button
+                className="px-4 py-2 bg-orange-500 text-white rounded flex items-center gap-2 hover:bg-orange-600"
+                onClick={() => setShowImportModal(true)}
+              >
+                <Upload className="w-4 h-4" /> Import CSV
+              </button>
+              <button
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                onClick={() => {
+                  setEditData(null);
+                  setShowForm(true);
+                }}
+              >
+                <Plus className="w-4 h-4 inline" /> Add
+              </button>
+            </div>
           </div>
 
           {viewMode === "card" ? <CardView /> : <TableView />}
@@ -166,6 +380,100 @@ export default function GageTypeInventory({ isOpen, onClose }) {
               }}
               defaultValues={editData || undefined}
             />
+          </div>
+        </Modal>
+      )}
+
+      {showImportModal && (
+        <Modal
+          isOpen={showImportModal}
+          onClose={() => {
+            setShowImportModal(false);
+            setImportFile(null);
+            setImportPreview([]);
+          }}
+          title="Import Gage Types"
+          className="max-w-3xl"
+        >
+          <div className="p-6">
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">
+                Upload CSV File
+              </label>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                File should have columns: <strong>Name</strong> (required), <strong>Description</strong> (optional), <strong>Gage Sub-Type</strong> (should match existing sub-types)
+              </p>
+            </div>
+
+            {importPreview.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-medium mb-2">Preview (first 5 rows):</h4>
+                <div className="overflow-x-auto border rounded">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {Object.keys(importPreview[0]).map((key) => (
+                          <th key={key} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {key}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {importPreview.map((row, index) => (
+                        <tr key={index}>
+                          {Object.values(row).map((value, idx) => (
+                            <td key={idx} className="px-3 py-2 text-sm">
+                              {value || "-"}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={exportTemplate}
+                className="px-4 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
+                disabled={isImporting}
+              >
+                Download Template
+              </button>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                disabled={isImporting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={!importFile || isImporting}
+              >
+                {isImporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Import Data
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </Modal>
       )}

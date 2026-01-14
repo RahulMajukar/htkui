@@ -15,7 +15,10 @@ const Header = () => {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-white">Plant Head Dashboard</h1>
+            {/* <h1 className="text-2xl font-bold text-white">Plant Head Dashboard</h1> */}
+            {localStorage.getItem('userRole') === 'IT_ADMIN' && (
+              <h1 className="text-2xl font-bold text-white">QC Manager Dashboard</h1>
+            )}
             <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
               Dashboard
             </span>

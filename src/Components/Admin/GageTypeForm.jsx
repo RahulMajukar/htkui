@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Save, Ban, Plus } from "lucide-react";
+import { Save, Ban } from "lucide-react";
 import api from "../../api/axios";
 
 export default function GageTypeForm({ onClose, onSave, defaultValues }) {
@@ -13,7 +13,6 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
     handleSubmit,
     reset,
     watch,
-    setValue,
     formState: { errors },
   } = useForm({
     mode: "onChange",
@@ -38,7 +37,6 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
     if (defaultValues) reset(defaultValues);
   }, [defaultValues, reset]);
 
-  // Toggle manual input when "__new__" is selected
   useEffect(() => {
     if (selectedSubTypeId === "__new__") {
       setIsAddingNewSubType(true);
@@ -52,7 +50,6 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
     try {
       let finalSubTypeId = null;
 
-      // Handle new sub-type creation
       if (data.gageSubTypeId === "__new__") {
         if (!newSubTypeName.trim()) {
           alert("❌ Please enter a valid gage sub-type name.");
@@ -61,8 +58,7 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
         const createRes = await api.post("/gage-sub-types/add", {
           name: newSubTypeName.trim(),
         });
-        finalSubTypeId = createRes.data.id; // assuming API returns { id, name, ... }
-        // Optionally: add to local list for future use
+        finalSubTypeId = createRes.data.id;
         setGageSubTypes((prev) => [...prev, createRes.data]);
       } else {
         finalSubTypeId = parseInt(data.gageSubTypeId);
@@ -94,7 +90,6 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-[500px] max-w-full">
       <div className="bg-white border rounded-xl p-6 shadow-md">
-        {/* Gage Type Name */}
         <div className="mb-4 text-left">
           <label className="block text-sm font-medium mb-1">Gage Type Name *</label>
           <input
@@ -108,7 +103,6 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
           )}
         </div>
 
-        {/* Gage Sub-Type Selection */}
         <div className="mb-4 text-left">
           <label className="block text-sm font-medium mb-1">Gage Sub-Type *</label>
           <select
@@ -133,7 +127,6 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
             <p className="text-red-500 text-xs mt-1">{errors.gageSubTypeId.message}</p>
           )}
 
-          {/* Manual Input for New Sub-Type */}
           {isAddingNewSubType && (
             <div className="mt-2">
               <input
@@ -151,7 +144,6 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
           )}
         </div>
 
-        {/* Description */}
         <div className="mb-4 text-left">
           <label className="block text-sm font-medium mb-1">Description</label>
           <textarea
@@ -163,7 +155,6 @@ export default function GageTypeForm({ onClose, onSave, defaultValues }) {
         </div>
       </div>
 
-      {/* Footer Buttons */}
       <div className="flex justify-end gap-3">
         <button
           type="button"
