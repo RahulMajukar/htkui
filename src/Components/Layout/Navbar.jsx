@@ -374,19 +374,19 @@ export default function Navbar({ showTitle = true, isSidebarOpen, setSidebarOpen
   };
 
   // Digital Clock (Updated: Simple and classic UI - neutral white text, subtle border, sans-serif font, smaller size)
-  const DigitalClock = () => {
-    const [time, setTime] = useState(new Date());
-    useEffect(() => {
-      const interval = setInterval(() => setTime(new Date()), 1000);
-      return () => clearInterval(interval);
-    }, []);
-    const formattedTime = time.toLocaleTimeString("en-US", { hour12: false });
-    return (
-      <div className="text-white text-sm font-sans px-2 py-1 border border-white/30 rounded">
-        {formattedTime}
-      </div>
-    );
-  };
+  // const DigitalClock = () => {
+  //   const [time, setTime] = useState(new Date());
+  //   useEffect(() => {
+  //     const interval = setInterval(() => setTime(new Date()), 1000);
+  //     return () => clearInterval(interval);
+  //   }, []);
+  //   const formattedTime = time.toLocaleTimeString("en-US", { hour12: false });
+  //   return (
+  //     <div className="text-white text-sm font-sans px-2 py-1 border border-white/30 rounded">
+  //       {formattedTime}
+  //     </div>
+  //   );
+  // };
 
   // ✅ Handle QR Scanner Click
   const handleQRScanClick = () => {
@@ -521,13 +521,13 @@ export default function Navbar({ showTitle = true, isSidebarOpen, setSidebarOpen
           </div>
 
           {/* Location */}
-          <div className="flex items-center text-green-400 font-mono text-sm">
+          {/* <div className="flex items-center text-green-400 font-mono text-sm">
             <MapPin className="w-5 h-5 text-red-500 mr-1" />
             {location}
-          </div>
+          </div> */}
 
           {/* Updated Digital Clock - Placed after location for better flow */}
-          <DigitalClock />
+          {/* <DigitalClock /> */}
           {/* 
           <TimeoutSettings /> */}
 

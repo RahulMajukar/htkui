@@ -184,7 +184,7 @@ export default function Sidebar({
                    ${isSidebarOpen ? "translate-x-0" : "-translate-x-60"}`}
       >
         <div className="flex flex-col h-full p-4">
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <div className="text-center mb-3">
               <div className="text-white text-lg font-medium">
                 {formatDate(currentTime)}
@@ -198,7 +198,7 @@ export default function Sidebar({
                 NIGHT
               </button>
             </div>
-          </div>
+          </div> */}
 
           <nav className="flex-1 overflow-y-auto space-y-1">
             {isCalibrationManager && user?.role && (
