@@ -9,32 +9,29 @@ import GageTypeForm from "./GageTypeForm";
 import InhouseCalibrationMachineForm from "./InhouseCalibrationMachineForm";
 import Button from "../../ui/Button";
 import api from "../../api/axios";
-import { ClipboardPlus, Camera, Upload, X, ZoomIn, ZoomOut, Crop, Sun, Image, RotateCcw, Check, Minus, Plus, Video } from "lucide-react";
+import { ClipboardPlus, Camera, Upload, X, ZoomIn, ZoomOut, Crop, Sun, Image, RotateCcw, Check, Minus, Plus, Video, FileText } from "lucide-react";
+import GageFormImport from "./GageFormImport"; // Import the new component
 
 const FREQUENCIES = ["Daily", "Weekly", "Monthly", "Occasionally"];
 const CRITICALITIES = ["High", "Medium", "Low"];
 const LOCATIONS = ["Shop Floor", "Lab", "Warehouse","HF","TH","NF","BF","LAB","TH LAB","Furnace","NF Furnace"];
 const CODE_TYPES = ["Barcode Only", "QR Only", "Both"];
-
 const FREQUENCY_MAP = {
   Daily: "DAILY",
   Weekly: "WEEKLY",
   Monthly: "MONTHLY",
   Occasionally: "OCCASIONALLY",
 };
-
 const CRITICALITY_MAP = {
   High: "HIGH",
   Medium: "MEDIUM",
   Low: "LOW",
 };
-
 const LOCATION_MAP = {
   "Shop Floor": "SHOP_FLOOR",
   Lab: "LAB",
   Warehouse: "WAREHOUSE",
 };
-
 const CODE_TYPE_MAP = {
   "Barcode Only": "BARCODE_ONLY",
   "QR Only": "QR_ONLY",
@@ -61,7 +58,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
     codeType: "Both",
     inhouseCalibrationMachine: "",
   });
-
   const [gageImageFiles, setGageImageFiles] = useState([]);
   const [gageVideoFiles, setGageVideoFiles] = useState([]);
   const [gageManualFile, setGageManualFile] = useState(null);
@@ -83,13 +79,11 @@ const GageForm = ({ onGageAdded, onClose }) => {
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [currentEditingImage, setCurrentEditingImage] = useState(null);
   const [showVideoPreview, setShowVideoPreview] = useState(false);
-  
   // ✅ New: Video recording states
   const [showVideoCamera, setShowVideoCamera] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedTime, setRecordedTime] = useState(0);
   const [recordingTimer, setRecordingTimer] = useState(null);
-
   // Image editing states
   const [imageEdit, setImageEdit] = useState({
     zoom: 1,
@@ -100,17 +94,17 @@ const GageForm = ({ onGageAdded, onClose }) => {
     rotation: 0,
     scale: 1
   });
-
   const [cropMode, setCropMode] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-
   // ✅ Modal states for adding new items
   const [showAddGageSubTypeModal, setShowAddGageSubTypeModal] = useState(false);
   const [showAddManufacturerModal, setShowAddManufacturerModal] = useState(false);
   const [showAddGageTypeModal, setShowAddGageTypeModal] = useState(false);
   const [showAddInhouseMachineModal, setShowAddInhouseMachineModal] = useState(false);
-
+  // Import modal state
+  const [showImportModal, setShowImportModal] = useState(false);
+  
   const videoRef = useRef(null);
   const videoRecorderRef = useRef(null); // ✅ New: Video recorder ref
   const mediaRecorderRef = useRef(null); // ✅ New: Media recorder ref
@@ -121,7 +115,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const cropOverlayRef = useRef(null);
-
+  
   // Cleanup camera on unmount
   useEffect(() => {
     return () => {
@@ -129,7 +123,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
       stopRecording(); // ✅ New: Stop recording on unmount
     };
   }, []);
-
+  
   // Stop camera stream properly
   const stopCameraStream = () => {
     if (streamRef.current) {
@@ -146,7 +140,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
       videoRecorderRef.current.srcObject = null;
     }
   };
-
+  
   // Auto-stop stream when camera modal closes
   useEffect(() => {
     if (!showCamera && !showVideoCamera) {
@@ -156,7 +150,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
       stopRecording(); // ✅ New: Stop recording when modal closes
     }
   }, [showCamera, showVideoCamera]);
-
+  
   // Reset image editor when opening new image
   useEffect(() => {
     if (showImageEditor && currentEditingImage) {
@@ -172,14 +166,14 @@ const GageForm = ({ onGageAdded, onClose }) => {
       setCropMode(false);
     }
   }, [showImageEditor, currentEditingImage]);
-
+  
   // ✅ New: Effect to handle recording timer
   useEffect(() => {
     if (isRecording && recordedTime >= 20) {
       stopRecording();
     }
   }, [isRecording, recordedTime]);
-
+  
   useEffect(() => {
     const fetchGageTypes = async () => {
       try {
@@ -192,7 +186,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
     };
     fetchGageTypes();
   }, []);
-
+  
   useEffect(() => {
     const fetchManufacturers = async () => {
       try {
@@ -204,7 +198,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
     };
     fetchManufacturers();
   }, []);
-
+  
   useEffect(() => {
     const fetchGageSubTypes = async () => {
       try {
@@ -216,7 +210,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
     };
     fetchGageSubTypes();
   }, []);
-
+  
   useEffect(() => {
     const fetchInhouseCalibrationMachines = async () => {
       try {
@@ -228,7 +222,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
     };
     fetchInhouseCalibrationMachines();
   }, []);
-
+  
   const validateField = (name, value) => {
     if (
       [
@@ -260,45 +254,45 @@ const GageForm = ({ onGageAdded, onClose }) => {
     }
     return "";
   };
-
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
     if (name === "serialNumber") checkSerialNumber(value);
   };
-
+  
   const handleCodeTypeChange = (codeTypeValue) => {
     setForm((prev) => ({ ...prev, codeType: codeTypeValue }));
     setErrors((prev) => ({ ...prev, codeType: validateField("codeType", codeTypeValue) }));
   };
-
+  
   // ✅ Callbacks for adding new items
   const handleAddGageSubTypeSuccess = (newSubType) => {
     setGageSubTypes((prev) => [...prev, newSubType]);
     const subTypeId = newSubType.id?.toString() || newSubType;
     setForm((prev) => ({ ...prev, gageSubType: subTypeId }));
   };
-
+  
   const handleAddGageTypeSuccess = (newGageType) => {
     const name = newGageType?.name || newGageType;
     if (!name) return;
     setGageTypes((prev) => [...prev, name]);
     setForm((prev) => ({ ...prev, gageType: name }));
   };
-
+  
   const handleAddInhouseMachineSuccess = (newMachine) => {
     const item = newMachine?.id ? newMachine : { ...newMachine, id: newMachine?.id || Date.now().toString(), machineName: newMachine?.machineName || newMachine?.name || "" };
     setInhouseCalibrationMachines((prev) => [...prev, item]);
     setForm((prev) => ({ ...prev, inhouseCalibrationMachine: (item.id || item).toString() }));
   };
-
+  
   const handleAddManufacturerSuccess = (newMfg) => {
     setManufacturers((prev) => [...prev, newMfg]);
     const mfgId = newMfg.id?.toString() || newMfg;
     setForm((prev) => ({ ...prev, manufacturer: mfgId }));
   };
-
+  
   const checkSerialNumber = async (serial) => {
     if (!serial.trim()) {
       setSerialValid(true);
@@ -315,41 +309,33 @@ const GageForm = ({ onGageAdded, onClose }) => {
       setSerialCheckLoading(false);
     }
   };
-
+  
   // 📸 Open camera for photos
   const openCamera = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       alert("Camera access is not supported in this browser.");
       return;
     }
-
     stopCameraStream();
-
     try {
       console.log("Attempting to access camera...");
       setCameraLoading(true);
       setCameraError("");
       setShowCamera(true);
-
-      const constraints = { 
-        video: { 
+      const constraints = {
+        video: {
           facingMode: "environment",
           width: { ideal: 1280 },
           height: { ideal: 720 }
-        }, 
-        audio: false 
+        },
+        audio: false
       };
-
       console.log("Requesting camera with constraints:", constraints);
-
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log("Stream obtained successfully");
-      
       streamRef.current = stream;
-
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        
         videoRef.current.onloadedmetadata = () => {
           console.log("Video metadata loaded");
           videoRef.current.play()
@@ -363,13 +349,11 @@ const GageForm = ({ onGageAdded, onClose }) => {
               setCameraLoading(false);
             });
         };
-
         videoRef.current.onerror = (e) => {
           console.error("Video element error:", e);
           setCameraError("Video element error occurred");
           setCameraLoading(false);
         };
-
         setTimeout(() => {
           if (videoRef.current && videoRef.current.readyState < 2) {
             console.warn("Video not ready after timeout, forcing play");
@@ -379,7 +363,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
           }
         }, 2000);
       }
-
     } catch (err) {
       console.error("Camera access error:", err);
       let errorMsg = `Camera access failed: ${err.message}`;
@@ -396,16 +379,14 @@ const GageForm = ({ onGageAdded, onClose }) => {
       alert(errorMsg);
     }
   };
-
+  
   // ✅ New: Open camera for video recording
   const openVideoCamera = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       alert("Camera access is not supported in this browser.");
       return;
     }
-
     stopCameraStream();
-
     try {
       console.log("Attempting to access camera for video recording...");
       setCameraLoading(true);
@@ -413,24 +394,19 @@ const GageForm = ({ onGageAdded, onClose }) => {
       setShowVideoCamera(true);
       setIsRecording(false);
       setRecordedTime(0);
-
-      const constraints = { 
-        video: { 
+      const constraints = {
+        video: {
           facingMode: "environment",
           width: { ideal: 1280 },
           height: { ideal: 720 }
-        }, 
+        },
         audio: true // ✅ Enable audio for video recording
       };
-
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log("Video stream obtained successfully");
-      
       streamRef.current = stream;
-
       if (videoRecorderRef.current) {
         videoRecorderRef.current.srcObject = stream;
-        
         videoRecorderRef.current.onloadedmetadata = () => {
           console.log("Video recorder metadata loaded");
           videoRecorderRef.current.play()
@@ -444,14 +420,12 @@ const GageForm = ({ onGageAdded, onClose }) => {
               setCameraLoading(false);
             });
         };
-
         videoRecorderRef.current.onerror = (e) => {
           console.error("Video recorder element error:", e);
           setCameraError("Video recorder element error occurred");
           setCameraLoading(false);
         };
       }
-
     } catch (err) {
       console.error("Video camera access error:", err);
       let errorMsg = `Camera access failed: ${err.message}`;
@@ -468,39 +442,33 @@ const GageForm = ({ onGageAdded, onClose }) => {
       alert(errorMsg);
     }
   };
-
+  
   // ✅ New: Start video recording
   const startRecording = () => {
     if (!streamRef.current) {
       alert("Camera stream not available. Please try again.");
       return;
     }
-
     try {
       recordedChunksRef.current = [];
       const mediaRecorder = new MediaRecorder(streamRef.current, {
         mimeType: 'video/webm;codecs=vp9,opus'
       });
-
       mediaRecorderRef.current = mediaRecorder;
-
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           recordedChunksRef.current.push(event.data);
         }
       };
-
       mediaRecorder.onstop = () => {
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
         const file = new File([blob], `gage_video_${Date.now()}.webm`, { type: 'video/webm' });
         setGageVideoFiles(prev => [...prev, file]);
         console.log("Video recorded and saved successfully");
       };
-
       mediaRecorder.start();
       setIsRecording(true);
       setRecordedTime(0);
-
       // Start timer
       const timer = setInterval(() => {
         setRecordedTime(prev => {
@@ -511,30 +479,26 @@ const GageForm = ({ onGageAdded, onClose }) => {
           return newTime;
         });
       }, 1000);
-
       setRecordingTimer(timer);
-
     } catch (error) {
       console.error("Error starting recording:", error);
       alert("Failed to start video recording. Please try again.");
     }
   };
-
+  
   // ✅ New: Stop video recording
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
       if (recordingTimer) {
         clearInterval(recordingTimer);
         setRecordingTimer(null);
       }
-      
       closeVideoCamera();
     }
   };
-
+  
   // ✅ New: Close video camera
   const closeVideoCamera = () => {
     console.log("Closing video camera modal");
@@ -543,13 +507,12 @@ const GageForm = ({ onGageAdded, onClose }) => {
     setCameraError("");
     setIsRecording(false);
     setRecordedTime(0);
-    
     if (recordingTimer) {
       clearInterval(recordingTimer);
       setRecordingTimer(null);
     }
   };
-
+  
   // 📷 Capture photo
   const capturePhoto = () => {
     const video = videoRef.current;
@@ -557,14 +520,12 @@ const GageForm = ({ onGageAdded, onClose }) => {
       alert("Camera feed not ready. Please wait a moment and try again.");
       return;
     }
-
     try {
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
       canvas.toBlob((blob) => {
         if (blob) {
           const file = new File([blob], `gage_${Date.now()}.jpg`, { type: "image/jpeg" });
@@ -573,76 +534,62 @@ const GageForm = ({ onGageAdded, onClose }) => {
           console.log("Photo captured successfully, opening editor");
         }
       }, "image/jpeg", 0.9);
-      
       closeCamera();
     } catch (error) {
       console.error("Error capturing photo:", error);
       alert("Failed to capture photo. Please try again.");
     }
   };
-
+  
   const closeCamera = () => {
     console.log("Closing camera modal");
     setShowCamera(false);
     setCameraLoading(false);
     setCameraError("");
   };
-
+  
   // 🖼️ Image Editing Functions (unchanged - keeping existing image editing code)
   const applyImageEdits = () => {
     if (!canvasRef.current || !imageRef.current) return null;
-
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const img = imageRef.current;
-
     // Set canvas size to original image size
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
-
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     // Apply filters
     ctx.filter = `
-      brightness(${imageEdit.brightness}%) 
-      contrast(${imageEdit.contrast}%) 
+      brightness(${imageEdit.brightness}%)
+      contrast(${imageEdit.contrast}%)
       grayscale(${imageEdit.grayscale}%)
     `;
-
     // Calculate crop area based on percentages
     const cropX = (imageEdit.crop.x / 100) * img.naturalWidth;
     const cropY = (imageEdit.crop.y / 100) * img.naturalHeight;
     const cropWidth = (imageEdit.crop.width / 100) * img.naturalWidth;
     const cropHeight = (imageEdit.crop.height / 100) * img.naturalHeight;
-
     // Ensure crop area stays within image bounds
     const safeCropX = Math.max(0, Math.min(cropX, img.naturalWidth - 10));
     const safeCropY = Math.max(0, Math.min(cropY, img.naturalHeight - 10));
     const safeCropWidth = Math.max(10, Math.min(cropWidth, img.naturalWidth - safeCropX));
     const safeCropHeight = Math.max(10, Math.min(cropHeight, img.naturalHeight - safeCropY));
-
     // Draw cropped and transformed image
     ctx.save();
-    
     // Move to center of canvas
     ctx.translate(canvas.width / 2, canvas.height / 2);
-    
     // Apply rotation
     ctx.rotate((imageEdit.rotation * Math.PI) / 180);
-    
     // Apply scale
     ctx.scale(imageEdit.scale, imageEdit.scale);
-    
     // Draw the cropped image
     ctx.drawImage(
       img,
       safeCropX, safeCropY, safeCropWidth, safeCropHeight, // source crop
       -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height // destination
     );
-    
     ctx.restore();
-
     // Convert to blob and return
     return new Promise((resolve) => {
       canvas.toBlob((blob) => {
@@ -650,7 +597,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
       }, 'image/jpeg', 0.9);
     });
   };
-
+  
   const saveEditedImage = async () => {
     const blob = await applyImageEdits();
     if (blob) {
@@ -661,14 +608,14 @@ const GageForm = ({ onGageAdded, onClose }) => {
       setCropMode(false);
     }
   };
-
+  
   const handleEditChange = (property, value) => {
     setImageEdit(prev => ({
       ...prev,
       [property]: value
     }));
   };
-
+  
   const handleCropChange = (property, value) => {
     setImageEdit(prev => ({
       ...prev,
@@ -678,7 +625,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
       }
     }));
   };
-
+  
   // Zoom functions
   const zoomIn = () => {
     setImageEdit(prev => ({
@@ -686,14 +633,14 @@ const GageForm = ({ onGageAdded, onClose }) => {
       scale: Math.min(3, prev.scale + 0.1) // Max zoom 300%
     }));
   };
-
+  
   const zoomOut = () => {
     setImageEdit(prev => ({
       ...prev,
       scale: Math.max(0.1, prev.scale - 0.1) // Min zoom 10%
     }));
   };
-
+  
   const resetEdits = () => {
     setImageEdit({
       zoom: 1,
@@ -706,17 +653,17 @@ const GageForm = ({ onGageAdded, onClose }) => {
     });
     setCropMode(false);
   };
-
+  
   // Crop mode functions
   const startCrop = () => {
     setCropMode(true);
   };
-
+  
   const applyCrop = () => {
     setCropMode(false);
     // The crop is already applied through the crop state
   };
-
+  
   const cancelCrop = () => {
     setCropMode(false);
     // Reset crop to full image
@@ -725,29 +672,24 @@ const GageForm = ({ onGageAdded, onClose }) => {
       crop: { x: 0, y: 0, width: 100, height: 100 }
     }));
   };
-
+  
   // Handle mouse events for crop overlay
   const handleMouseDown = (e) => {
     if (!cropMode) return;
-    
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
     setDragStart({ x, y });
     setIsDragging(true);
   };
-
+  
   const handleMouseMove = (e) => {
     if (!isDragging || !cropMode) return;
-    
     const rect = e.currentTarget.getBoundingClientRect();
     const currentX = ((e.clientX - rect.left) / rect.width) * 100;
     const currentY = ((e.clientY - rect.top) / rect.height) * 100;
-    
     const deltaX = currentX - dragStart.x;
     const deltaY = currentY - dragStart.y;
-    
     // Update crop position
     setImageEdit(prev => ({
       ...prev,
@@ -757,14 +699,13 @@ const GageForm = ({ onGageAdded, onClose }) => {
         y: Math.max(0, Math.min(100 - prev.crop.height, prev.crop.y + deltaY))
       }
     }));
-    
     setDragStart({ x: currentX, y: currentY });
   };
-
+  
   const handleMouseUp = () => {
     setIsDragging(false);
   };
-
+  
   // 📁 Handle image file uploads (append to existing)
   const handleImageFilesChange = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -774,7 +715,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
     }
     e.target.value = null;
   };
-
+  
   // Handle video file uploads
   const handleVideoFilesChange = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -783,26 +724,26 @@ const GageForm = ({ onGageAdded, onClose }) => {
     }
     e.target.value = null;
   };
-
+  
   const handleManualFileChange = (e) => {
     setGageManualFile(e.target.files[0]);
   };
-
+  
   const removeImage = (index) => {
     setGageImageFiles(prev => prev.filter((_, i) => i !== index));
   };
-
+  
   // Remove video function
   const removeVideo = (index) => {
     setGageVideoFiles(prev => prev.filter((_, i) => i !== index));
   };
-
+  
   // Preview video function
   const previewVideoFile = (file) => {
     setPreviewVideo(URL.createObjectURL(file));
     setShowVideoPreview(true);
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
@@ -855,19 +796,15 @@ const GageForm = ({ onGageAdded, onClose }) => {
     formData.append("location", LOCATION_MAP[form.location]);
     formData.append("notes", form.notes);
     formData.append("codeType", CODE_TYPE_MAP[form.codeType]);
-    
     // Append images
     gageImageFiles.forEach((file) => {
       formData.append("gageImages", file);
     });
-    
     // Append videos
     gageVideoFiles.forEach((file) => {
       formData.append("gageVideos", file);
     });
-    
     if (gageManualFile) formData.append("gageManual", gageManualFile);
-    
     try {
       const res = await api.post("/gages/upload", formData);
       setCreatedGage(res.data);
@@ -878,7 +815,16 @@ const GageForm = ({ onGageAdded, onClose }) => {
       alert("❌ Failed to save gage.");
     }
   };
-
+  
+  // Handle import completion
+  const handleImportComplete = (results) => {
+    console.log("Import completed:", results);
+    // You can add additional logic here after import completion
+    if (onGageAdded) {
+      onGageAdded();
+    }
+  };
+  
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-40 z-50">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col max-h-[90vh]">
@@ -888,6 +834,14 @@ const GageForm = ({ onGageAdded, onClose }) => {
             <ClipboardPlus className="w-6 h-6" />
             <h2 className="text-lg md:text-xl font-semibold">Add Gage Details</h2>
           </div>
+          {/* Add Import Button */}
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="ml-4 px-3 py-1 bg-white text-[#005797] rounded text-sm hover:bg-gray-100"
+          >
+            <FileText size={16} className="inline mr-1" />
+            Import Bulk Gages
+          </button>
           {onClose && (
             <button
               onClick={onClose}
@@ -897,6 +851,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
             </button>
           )}
         </div>
+        
         {/* Form Body */}
         <div className="p-6 md:p-8 overflow-y-auto">
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -967,39 +922,36 @@ const GageForm = ({ onGageAdded, onClose }) => {
                   )}
                   {serialCheckLoading && <span className="text-gray-500 text-sm mt-1">Checking...</span>}
                 </div>
-<div className="flex flex-col">
-  <label className="block font-semibold mb-2">Code Type</label>
-  {errors.codeType && (
-    <span className="text-red-500 text-sm mb-1">{errors.codeType}</span>
-  )}
-
-  <div className="flex space-x-3">
-    {CODE_TYPES.map((type) => (
-      <button
-        key={type}
-        type="button"
-        onClick={() => handleCodeTypeChange(type)}
-        className={`
-          px-4 py-2 rounded-lg border 
-          transition-all duration-200
-          ${form.codeType === type 
-            ? "bg-[#005797] text-white border-[#005797]" 
-            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"}
-        `}
-      >
-        {type}
-      </button>
-    ))}
-  </div>
-</div>
-
+                <div className="flex flex-col">
+                  <label className="block font-semibold mb-2">Code Type</label>
+                  {errors.codeType && (
+                    <span className="text-red-500 text-sm mb-1">{errors.codeType}</span>
+                  )}
+                  <div className="flex space-x-3">
+                    {CODE_TYPES.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => handleCodeTypeChange(type)}
+                        className={`
+                          px-4 py-2 rounded-lg border
+                          transition-all duration-200
+                          ${form.codeType === type
+                            ? "bg-[#005797] text-white border-[#005797]"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"}
+                        `}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-
+            
             {/* Media Upload Section */}
             <div className="rounded-xl border shadow-sm p-6 bg-white">
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Media Upload</h3>
-              
               {/* Images Section */}
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h4 className="text-md font-semibold text-blue-800 mb-3 flex items-center gap-2">
@@ -1052,7 +1004,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                   ))}
                 </div>
               </div>
-
               {/* New: Videos Section */}
               <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                 <h4 className="text-md font-semibold text-purple-800 mb-3 flex items-center gap-2">
@@ -1089,7 +1040,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
                 <div className="flex flex-wrap gap-2">
                   {gageVideoFiles.map((file, idx) => (
                     <div key={idx} className="relative">
-                      <div 
+                      <div
                         className="w-16 h-16 bg-gray-200 rounded border flex items-center justify-center cursor-pointer hover:bg-gray-300"
                         onClick={() => previewVideoFile(file)}
                       >
@@ -1110,7 +1061,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
                 </div>
               </div>
             </div>
-
+            
             {/* Calibration */}
             <div className="rounded-xl border shadow-sm p-6 bg-white">
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Calibration</h3>
@@ -1195,7 +1146,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
                 </ul>
               </div>
             </div>
-
+            
             {/* Location & Files */}
             <div className="rounded-xl border shadow-sm p-6 bg-white">
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Location & Files</h3>
@@ -1232,7 +1183,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
                 </div>
               </div>
             </div>
-
+            
             {/* Notes */}
             <div className="rounded-xl border shadow-sm p-6 bg-white">
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Notes</h3>
@@ -1245,7 +1196,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
                 placeholder="Additional information about this gage..."
               />
             </div>
-
+            
             {/* Buttons */}
             <div className="pt-4 flex justify-between">
               <Button type="button" variant="secondary" onClick={onClose}>
@@ -1256,7 +1207,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
               </Button>
             </div>
           </form>
-
+          
           {/* Success Modal */}
           {showSuccessModal && createdGage && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1321,25 +1272,22 @@ const GageForm = ({ onGageAdded, onClose }) => {
               </div>
             </div>
           )}
-
+          
           {/* Photo Camera Modal */}
           {showCamera && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-lg p-4 max-w-md w-full text-center">
                 <h3 className="text-lg font-bold mb-4">📸 Take a Photo</h3>
-                
                 {cameraLoading && (
                   <div className="bg-black rounded w-full h-64 flex items-center justify-center">
                     <p className="text-white">Loading camera...</p>
                   </div>
                 )}
-                
                 {cameraError && (
                   <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {cameraError}
                   </div>
                 )}
-                
                 <div className="relative w-full max-h-[60vh] mx-auto bg-black rounded overflow-hidden">
                   <video
                     ref={videoRef}
@@ -1348,14 +1296,12 @@ const GageForm = ({ onGageAdded, onClose }) => {
                     muted
                     className="w-full h-full object-cover bg-black min-h-[300px]"
                   />
-                  
                   {cameraLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
                       <p className="text-white">Please grant camera permission and wait...</p>
                     </div>
                   )}
                 </div>
-                
                 <div className="mt-4 flex justify-center gap-3">
                   <button
                     type="button"
@@ -1376,25 +1322,22 @@ const GageForm = ({ onGageAdded, onClose }) => {
               </div>
             </div>
           )}
-
+          
           {/* ✅ New: Video Camera Modal */}
           {showVideoCamera && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-lg p-4 max-w-md w-full text-center">
                 <h3 className="text-lg font-bold mb-4">🎥 Record Video (Max 20 seconds)</h3>
-                
                 {cameraLoading && (
                   <div className="bg-black rounded w-full h-64 flex items-center justify-center">
                     <p className="text-white">Loading camera...</p>
                   </div>
                 )}
-                
                 {cameraError && (
                   <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {cameraError}
                   </div>
                 )}
-                
                 <div className="relative w-full max-h-[60vh] mx-auto bg-black rounded overflow-hidden">
                   <video
                     ref={videoRecorderRef}
@@ -1403,13 +1346,11 @@ const GageForm = ({ onGageAdded, onClose }) => {
                     muted
                     className="w-full h-full object-cover bg-black min-h-[300px]"
                   />
-                  
                   {cameraLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
                       <p className="text-white">Please grant camera permission and wait...</p>
                     </div>
                   )}
-                  
                   {/* Recording Timer */}
                   {isRecording && (
                     <div className="absolute top-4 right-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
@@ -1417,7 +1358,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                     </div>
                   )}
                 </div>
-                
                 <div className="mt-4 flex justify-center gap-3">
                   <button
                     type="button"
@@ -1426,7 +1366,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                   >
                     Cancel
                   </button>
-                  
                   {!isRecording ? (
                     <button
                       type="button"
@@ -1446,10 +1385,9 @@ const GageForm = ({ onGageAdded, onClose }) => {
                     </button>
                   )}
                 </div>
-                
                 {/* Recording Instructions */}
                 <div className="mt-3 text-sm text-gray-600">
-                  {!isRecording ? 
+                  {!isRecording ?
                     "Click 'Start Recording' to begin capturing video (max 20 seconds)" :
                     "Recording in progress... Click 'Stop Recording' when finished or wait for auto-stop at 20 seconds"
                   }
@@ -1457,7 +1395,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
               </div>
             </div>
           )}
-
+          
           {/* Video Preview Modal */}
           {showVideoPreview && previewVideo && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -1498,7 +1436,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
               </div>
             </div>
           )}
-
+          
           {/* Image Editor Modal */}
           {showImageEditor && currentEditingImage && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -1507,13 +1445,12 @@ const GageForm = ({ onGageAdded, onClose }) => {
                   <Image className="w-6 h-6" />
                   Edit Image
                 </h3>
-                
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                   {/* Image Preview - Larger area */}
                   <div className="xl:col-span-3">
                     <div className="border rounded-lg p-4 bg-gray-50">
                       <div className="relative overflow-hidden rounded bg-black flex justify-center items-center min-h-[500px]">
-                        <div 
+                        <div
                           ref={cropOverlayRef}
                           className="relative w-full h-full flex justify-center items-center cursor-move"
                           onMouseDown={cropMode ? handleMouseDown : undefined}
@@ -1533,10 +1470,9 @@ const GageForm = ({ onGageAdded, onClose }) => {
                             }}
                             onLoad={() => console.log("Image loaded for editing")}
                           />
-                          
                           {/* Crop Overlay */}
                           {cropMode && (
-                            <div 
+                            <div
                               className="absolute border-2 border-yellow-400 bg-yellow-400 bg-opacity-20 pointer-events-none"
                               style={{
                                 left: `${imageEdit.crop.x}%`,
@@ -1554,7 +1490,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                         </div>
                         <canvas ref={canvasRef} className="hidden" />
                       </div>
-
                       {/* Zoom Controls */}
                       <div className="flex justify-center items-center gap-4 mt-4">
                         <button
@@ -1581,7 +1516,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                       </div>
                     </div>
                   </div>
-
                   {/* Editing Controls */}
                   <div className="space-y-6">
                     {/* Crop Controls */}
@@ -1590,7 +1524,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                         <Crop className="w-4 h-4" />
                         Crop Tool
                       </h4>
-                      
                       {!cropMode ? (
                         <button
                           type="button"
@@ -1623,12 +1556,10 @@ const GageForm = ({ onGageAdded, onClose }) => {
                         </div>
                       )}
                     </div>
-
                     {/* Crop Settings */}
                     {cropMode && (
                       <div className="space-y-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                         <h4 className="font-medium text-sm text-yellow-800">Crop Settings</h4>
-                        
                         <div>
                           <label className="text-xs font-medium mb-1 block">X: {Math.round(imageEdit.crop.x)}%</label>
                           <input
@@ -1640,7 +1571,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                             className="w-full h-2 bg-yellow-200 rounded-lg appearance-none cursor-pointer"
                           />
                         </div>
-                        
                         <div>
                           <label className="text-xs font-medium mb-1 block">Y: {Math.round(imageEdit.crop.y)}%</label>
                           <input
@@ -1652,7 +1582,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                             className="w-full h-2 bg-yellow-200 rounded-lg appearance-none cursor-pointer"
                           />
                         </div>
-                        
                         <div>
                           <label className="text-xs font-medium mb-1 block">Width: {Math.round(imageEdit.crop.width)}%</label>
                           <input
@@ -1664,7 +1593,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                             className="w-full h-2 bg-yellow-200 rounded-lg appearance-none cursor-pointer"
                           />
                         </div>
-                        
                         <div>
                           <label className="text-xs font-medium mb-1 block">Height: {Math.round(imageEdit.crop.height)}%</label>
                           <input
@@ -1678,7 +1606,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                         </div>
                       </div>
                     )}
-
                     {/* Brightness */}
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium mb-2">
@@ -1694,7 +1621,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
-
                     {/* Contrast */}
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium mb-2">
@@ -1710,7 +1636,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
-
                     {/* Grayscale */}
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium mb-2">
@@ -1726,7 +1651,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
-
                     {/* Rotation */}
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium mb-2">
@@ -1742,7 +1666,6 @@ const GageForm = ({ onGageAdded, onClose }) => {
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
-
                     {/* Action Buttons */}
                     <div className="flex gap-3 pt-4">
                       <button
@@ -1778,7 +1701,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
               </div>
             </div>
           )}
-
+          
           {/* Manual Preview Modal */}
           {previewManual && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
@@ -1793,7 +1716,7 @@ const GageForm = ({ onGageAdded, onClose }) => {
               </div>
             </div>
           )}
-
+          
           {/* ✅ Add Gage Sub-Type Modal */}
           <AddItemModal
             isOpen={showAddGageSubTypeModal}
@@ -1806,26 +1729,44 @@ const GageForm = ({ onGageAdded, onClose }) => {
               { name: "name", label: "Sub-Type Name", type: "text", required: true, placeholder: "e.g., Digital" }
             ]}
           />
-
+          
           {/* ✅ Add Manufacturer Modal */}
           <ManufacturerDetails
             isOpen={showAddManufacturerModal}
             onClose={() => setShowAddManufacturerModal(false)}
             onSave={handleAddManufacturerSuccess}
           />
-
+          
           {/* ✅ Add Gage Type Modal (uses full GageTypeForm) */}
           {showAddGageTypeModal && (
             <Modal title="Add Gage Type" onClose={() => setShowAddGageTypeModal(false)}>
               <GageTypeForm onClose={() => setShowAddGageTypeModal(false)} onSave={handleAddGageTypeSuccess} />
             </Modal>
           )}
-
+          
           {/* ✅ Add Inhouse Calibration Machine Modal */}
           {showAddInhouseMachineModal && (
             <Modal title="Add Inhouse Calibration Machine" onClose={() => setShowAddInhouseMachineModal(false)}>
               <InhouseCalibrationMachineForm onClose={() => setShowAddInhouseMachineModal(false)} onSave={handleAddInhouseMachineSuccess} />
             </Modal>
+          )}
+          
+          {/* Import Modal */}
+          {showImportModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold">Import Bulk Gages</h3>
+                  <button
+                    onClick={() => setShowImportModal(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+                <GageFormImport onImportComplete={handleImportComplete} />
+              </div>
+            </div>
           )}
         </div>
       </div>

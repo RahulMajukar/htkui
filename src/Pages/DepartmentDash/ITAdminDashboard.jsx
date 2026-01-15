@@ -271,7 +271,7 @@ const ITAdminDashboard = () => {
         </div>
         {/* Analytics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5 mb-8">
-          {analyticsData.map((card) => (
+          {/* {analyticsData.map((card) => (
             <AnalyticsCard
               key={card.section}
               {...card}
@@ -281,7 +281,7 @@ const ITAdminDashboard = () => {
                   : () => handleSectionChange(card.section)
               }
             />
-          ))}
+          ))} */}
         </div>
         {/* Navigation Tabs */}
         <div className="mb-6">
